@@ -21,20 +21,14 @@ function LinearAlgebra.mul!(y::AbstractArray{S, ND},
     return y
 end
 
-# FIXME: broken
 # differentiate an arbitrary dimension array, x, along a given direction, dir.
-function LinearAlgebra.mul!(y::AbstractArray{S, ND},
+function LinearAlgebra.mul!(y::AbstractArray{S, N},
                             D::ChebDiff{T},
-                            x::AbstractArray{S, ND},
-                            dir::Int) where {S, ND, T}
-    # set up cartesian indexes around differentiation direction
-    Rpre = CartesianIndices(size(x)[1:(dir - 1)])
-    Rpost = CartesianIndices(size(x)[(dir + 1):end])
-
-    @views @inbounds begin
-        for Ipost in Rpost, Ipre in Rpre
-            LinearAlgebra.mul!(y[Ipre, :, Ipost], D, x[Ipre, :, Ipost])
-        end
+                            x::AbstractArray{S, N},
+                            dir::Int) where {S, N, T}
+    dims = filter(i->i!=dir, ntuple(i->i, N)) # FIXME: this costs a bunch of memory
+    for (u, v) in zip(eachslice(x, dims=dims), eachslice(y, dims=dims))
+        mul!(v, D, u)
     end
 
     return y

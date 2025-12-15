@@ -119,6 +119,35 @@ end
     @test ddfs_FD ≈ ddfs_EX
 end
 
+@testset "Matmul of hypercube       " begin
+    # initialise differentiation matrices
+    Ny = 32; Nx=8; Nz = 32; Nt = 32
+    grid = (reshape(chebpts(Ny),        :, 1, 1, 1),
+            reshape((0:(Nx - 1))/Nx*2π, 1, :, 1, 1),
+            reshape((0:(Nz - 1))/Nz*2π, 1, 1, :, 1),
+            reshape((0:(Nt - 1))/Nt*2π, 1, 1, 1, :))
+    D = chebdiff(Ny); DD = chebddiff(Ny)
+
+    # generate field to be differentiatied
+    fs_fun(y, x, z, t) = exp(1.1*y)*cos(x)*exp(cos(z))*atan(sin(t))
+    fs = fs_fun.(grid...)
+
+    # generate exact derivative fields
+    dfs_fun(y, x, z, t) = 1.1*fs_fun(y, x, z, t)
+    ddfs_fun(y, x, z, t) = (1.1^2)*fs_fun(y, x, z, t)
+    dfs_EX = dfs_fun.(grid...)
+    ddfs_EX = ddfs_fun.(grid...)
+
+    # compute derivative using matrix
+    dfs_FD = zero(fs)
+    ddfs_FD = zero(fs)
+    mul!(dfs_FD, D, fs, 1)
+    mul!(ddfs_FD, DD, fs, 1)
+
+    @test dfs_FD ≈ dfs_EX
+    @test ddfs_FD ≈ ddfs_EX
+end
+
 @testset "LU decomposition          " begin
     # initialise differentiation matrices
     N = 16
