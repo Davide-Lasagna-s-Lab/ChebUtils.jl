@@ -49,7 +49,7 @@ end
     @test diffmat4 ≈ [19/6 -4.0 4/3 -0.5; 1.0 -1/3 -1.0 1/3; -1/3 1.0 1/3 -1; 0.5 -4/3 4.0 -19/6]
 
     # second order matrices correct (based off first order)
-    @test double_diffmat_randsize ≈ diffmat_randsize*diffmat_randsize
+    @test double_diffmat_randsize.mat ≈ diffmat_randsize.mat*diffmat_randsize.mat
 end
 
 @testset "Quadrature weights        " begin
@@ -96,24 +96,24 @@ end
 @testset "Matmul of cube            " begin
     # initialise differentiation matrices
     Ny = 32; Nz = 32; Nt = 32
-    grid = (reshape(chebpts(Ny), :, 1, 1), reshape((0:(Nz - 1))/Nz*2π, 1, :, 1), reshape((0:(Nt - 1))/Nt*2π, 1, 1, :))
+    grid = (reshape((0:(Nz - 1))/Nz*2π, :, 1, 1), reshape(chebpts(Ny), 1, :, 1), reshape((0:(Nt - 1))/Nt*2π, 1, 1, :))
     D = chebdiff(Ny); DD = chebddiff(Ny)
 
     # generate field to be differentiatied
-    fs_fun(y, z, t) = exp(1.1*y)*exp(cos(z))*atan(sin(t))
+    fs_fun(z, y, t) = exp(1.1*y)*exp(cos(z))*atan(sin(t))
     fs = fs_fun.(grid...)
 
     # generate exact derivative fields
-    dfs_fun(y, z, t) = 1.1*fs_fun(y, z, t)
-    ddfs_fun(y, z, t) = (1.1^2)*fs_fun(y, z, t)
+    dfs_fun(z, y, t) = 1.1*fs_fun(z, y, t)
+    ddfs_fun(z, y, t) = (1.1^2)*fs_fun(z, y, t)
     dfs_EX = dfs_fun.(grid...)
     ddfs_EX = ddfs_fun.(grid...)
 
     # compute derivative using matrix
     dfs_FD = zero(fs)
     ddfs_FD = zero(fs)
-    mul!(dfs_FD, D, fs)
-    mul!(ddfs_FD, DD, fs)
+    mul!(dfs_FD, D, fs, Val(2))
+    mul!(ddfs_FD, DD, fs, Val(2))
 
     @test dfs_FD ≈ dfs_EX
     @test ddfs_FD ≈ ddfs_EX
@@ -122,27 +122,27 @@ end
 @testset "Matmul of hypercube       " begin
     # initialise differentiation matrices
     Ny = 32; Nx=8; Nz = 32; Nt = 32
-    grid = (reshape(chebpts(Ny),        :, 1, 1, 1),
-            reshape((0:(Nx - 1))/Nx*2π, 1, :, 1, 1),
-            reshape((0:(Nz - 1))/Nz*2π, 1, 1, :, 1),
-            reshape((0:(Nt - 1))/Nt*2π, 1, 1, 1, :))
+    grid = (reshape((0:(Nx - 1))/Nx*2π, :, 1, 1, 1),
+            reshape((0:(Nz - 1))/Nz*2π, 1, :, 1, 1),
+            reshape((0:(Nt - 1))/Nt*2π, 1, 1, :, 1),
+            reshape(chebpts(Ny),        1, 1, 1, :))
     D = chebdiff(Ny); DD = chebddiff(Ny)
 
     # generate field to be differentiatied
-    fs_fun(y, x, z, t) = exp(1.1*y)*cos(x)*exp(cos(z))*atan(sin(t))
+    fs_fun(x, z, t, y) = exp(1.1*y)*cos(x)*exp(cos(z))*atan(sin(t))
     fs = fs_fun.(grid...)
 
     # generate exact derivative fields
-    dfs_fun(y, x, z, t) = 1.1*fs_fun(y, x, z, t)
-    ddfs_fun(y, x, z, t) = (1.1^2)*fs_fun(y, x, z, t)
+    dfs_fun(x, z, t, y) = 1.1*fs_fun(x, z, t, y)
+    ddfs_fun(x, z, t, y) = (1.1^2)*fs_fun(x, z, t, y)
     dfs_EX = dfs_fun.(grid...)
     ddfs_EX = ddfs_fun.(grid...)
 
     # compute derivative using matrix
     dfs_FD = zero(fs)
     ddfs_FD = zero(fs)
-    mul!(dfs_FD, D, fs, 1)
-    mul!(ddfs_FD, DD, fs, 1)
+    mul!(dfs_FD, D, fs, Val(4))
+    mul!(ddfs_FD, DD, fs, Val(4))
 
     @test dfs_FD ≈ dfs_EX
     @test ddfs_FD ≈ ddfs_EX
