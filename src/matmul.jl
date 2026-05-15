@@ -14,7 +14,7 @@ end
 @generated function LinearAlgebra.mul!(y::AbstractArray{S, N},
                                        D::ChebDiff{T},
                                        x::AbstractArray{S, N},
-                                        ::Val{DIM}=1) where {S, N, T, DIM}
+                                        ::Val{DIM}=Val(1)) where {S, N, T, DIM}
     # generate slice expressions
     x_slice = Expr(:ref, :x, ntuple(i->i==DIM ? :(:) : __VARS__[i], N)...)
     y_slice = Expr(:ref, :y, ntuple(i->i==DIM ? :(:) : __VARS__[i], N)...)
