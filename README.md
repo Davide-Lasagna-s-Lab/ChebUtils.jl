@@ -37,13 +37,13 @@ the dense differentiation matrix, and read off the derivatives at the same nodes
 
 ```julia
 using Pkg
-Pkg.add(url="https://github.com/your-org/ChebUtils.jl")
+Pkg.add(url="https://github.com/Davide-Lasagna-s-Lab/ChebUtils.jl")
 ```
 
 Or from the REPL package manager:
 
 ```
-pkg> add https://github.com/your-org/ChebUtils.jl
+pkg> add https://github.com/Davide-Lasagna-s-Lab/ChebUtils.jl
 ```
 
 ---
