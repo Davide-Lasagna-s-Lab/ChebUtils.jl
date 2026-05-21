@@ -2,9 +2,10 @@ module ChebUtils
 
 using LinearAlgebra
 
-export chebpts, chebdiff, chebddiff, chebws
+export chebpts, chebdiff, chebddiff, chebws, AdjointChebDiff
 
 include("chebdiff.jl")
+include("adjoint.jl")
 include("constructors.jl")
 include("clencurt.jl")
 include("matmul.jl")

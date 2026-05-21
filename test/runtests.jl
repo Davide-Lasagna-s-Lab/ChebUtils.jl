@@ -148,6 +148,118 @@ end
     @test ddfs_FD ≈ ddfs_EX
 end
 
+@testset "Adjoint type               " begin
+    N  = 32
+    D  = chebdiff(N)
+    Dt = adjoint(D)
+
+    # returns the right type
+    @test Dt isa ChebUtils.AdjointChebDiff{Float64, N}
+
+    # size is preserved
+    @test size(Dt) == (N, N)
+
+    # double adjoint returns the original object (no copy)
+    @test adjoint(Dt) === D
+
+    # scalar indexing gives the transpose
+    for i in 1:N, j in 1:N
+        @test Dt[i, j] == D[j, i]
+    end
+
+    # setindex! is not supported
+    @test_throws ArgumentError (Dt[1, 1] = 0.0)
+end
+
+@testset "Adjoint identity           " begin
+    # verify ⟨v, D w⟩ = ⟨Dᵀ v, w⟩ for first and second order matrices
+    N = 64
+    D  = chebdiff(N)
+    DD = chebddiff(N)
+    for op in (D, DD)
+        At = adjoint(op)
+        v  = randn(N)
+        w  = randn(N)
+        @test v' * mul!(similar(v), op, w) ≈ mul!(similar(v), At, v)' * w
+    end
+end
+
+@testset "Weighted adjoint           " begin
+    N  = 32
+    D  = chebdiff(N)
+    w  = chebws(N)     # Clenshaw-Curtis weights
+    Dw = adjoint(D, w)
+
+    # returns the right type
+    @test Dw isa ChebUtils.AdjointChebDiff{Float64, N}
+
+    # double adjoint returns the parent
+    @test adjoint(Dw) === D
+
+    # action: Dw * x ≈ (1/w) .* (D' * (w .* x))
+    x    = randn(N)
+    y_Dw = mul!(similar(x), Dw, x)
+    y_ref = (1 ./ w) .* (Matrix(D)' * (w .* x))
+    @test y_Dw ≈ y_ref
+
+    # weighted adjoint identity: ⟨v, D u⟩_W = ⟨D† v, u⟩_W
+    u = randn(N); v = randn(N)
+    @test dot(v .* w, D * u) ≈ dot(Dw * v .* w, u)
+
+    # wrong weight length throws
+    @test_throws ArgumentError adjoint(D, ones(N + 1))
+
+    # non-positive weights throw
+    bad_w = copy(w); bad_w[1] = -1.0
+    @test_throws ArgumentError adjoint(D, bad_w)
+end
+
+@testset "Adjoint matmul vector      " begin
+    N  = 32
+    D  = chebdiff(N)
+    Dt = adjoint(D)
+
+    x  = randn(N)
+    y  = similar(x)
+    mul!(y, Dt, x)
+    @test y ≈ Matrix(D)' * x
+end
+
+@testset "Adjoint matmul cube        " begin
+    Ny = 32; Nz = 8; Nt = 8
+    D  = chebdiff(Ny)
+    Dt = adjoint(D)
+
+    x  = randn(Nz, Ny, Nt)
+    y  = similar(x)
+    yr = similar(x)
+    mul!(y,  Dt, x, Val(2))
+
+    # reference: apply D' slice-by-slice
+    Df = Matrix(D)
+    for iz in 1:Nz, it in 1:Nt
+        yr[iz, :, it] = Df' * x[iz, :, it]
+    end
+    @test y ≈ yr
+end
+
+@testset "Adjoint matmul hypercube   " begin
+    Ny = 32; Na = 4; Nb = 4; Nc = 4
+    D  = chebdiff(Ny)
+    Dt = adjoint(D)
+
+    x  = randn(Na, Nb, Nc, Ny)
+    y  = similar(x)
+    yr = similar(x)
+    mul!(y,  Dt, x, Val(4))
+
+    Df = Matrix(D)
+    for ia in 1:Na, ib in 1:Nb, ic in 1:Nc
+        yr[ia, ib, ic, :] = Df' * x[ia, ib, ic, :]
+    end
+    @test y ≈ yr
+end
+
 @testset "LU decomposition          " begin
     # initialise differentiation matrices
     N = 16
