@@ -11,7 +11,37 @@ const __VARS__ = (:i, :j, :k, :l)
 
 # ── ChebDiff (forward) ────────────────────────────────────────────────────────
 
-# 1-D specialisation: thin wrapper around the underlying dense matrix multiply.
+"""
+    mul!(y, D::ChebDiff, x) -> y
+    mul!(y, D::ChebDiff, x, Val(DIM)) -> y
+
+In-place Chebyshev spectral differentiation of `x`, storing the result in `y`.
+
+**1-D form** (`x` and `y` are vectors): computes `y = D * x` via the
+underlying dense matrix multiply.
+
+**N-D form** (`x` and `y` are N-dimensional arrays, `DIM` is a `Val`):
+differentiates `x` along dimension `DIM`, applying `D` to each 1-D fibre
+`x[..., :, ...]`.  The loop nest is generated at compile time — no views,
+no closures, no runtime dispatch.
+
+# Examples
+```julia
+julia> N = 32; y = chebpts(N); D = chebdiff(N);
+julia> f  = exp.(y);                 # f(y) = eʸ
+julia> df = similar(f);
+julia> mul!(df, D, f)                # df ≈ eʸ = f
+julia> df ≈ f
+true
+
+julia> # 3-D field: differentiate along dimension 2
+julia> F  = randn(8, N, 8);
+julia> dF = similar(F);
+julia> mul!(dF, D, F, Val(2))
+```
+
+See also [`mul!(y, AdjointChebDiff, x)`](@ref).
+"""
 function LinearAlgebra.mul!(y::AbstractArray{S, 1},
                             D::ChebDiff{T},
                             x::AbstractArray{S, 1}) where {S, T}
@@ -42,7 +72,25 @@ end
 
 # ── AdjointChebDiff ───────────────────────────────────────────────────────────
 
-# 1-D specialisation: multiply by the precomputed adjoint matrix stored in A.mat.
+"""
+    mul!(y, A::AdjointChebDiff, x) -> y
+    mul!(y, A::AdjointChebDiff, x, Val(DIM)) -> y
+
+In-place multiplication by the precomputed (possibly weighted) adjoint matrix.
+
+Identical calling convention to [`mul!(y, ::ChebDiff, x)`](@ref): the 1-D
+form wraps a dense matrix multiply against the stored adjoint matrix; the N-D
+form differentiates along `DIM`.
+
+# Examples
+```julia
+julia> N = 32; D = chebdiff(N); Dt = adjoint(D);
+julia> v = randn(N); w = similar(v);
+julia> mul!(w, Dt, v)            # w = Dᵀ v
+julia> w ≈ Matrix(D)' * v
+true
+```
+"""
 function LinearAlgebra.mul!(y::AbstractArray{S, 1},
                             A::AdjointChebDiff{T},
                             x::AbstractArray{S, 1}) where {S, T}
