@@ -1,9 +1,36 @@
-# This file contains the Clenshaw-Curtis quadrature weights for a Chebyshev
-# grid.
+# Clenshaw-Curtis quadrature weights for the Chebyshev-Gauss-Lobatto grid.
+#
+# Original algorithm by Lloyd N. Trefethen (Oxford).
+# Adapted from http://people.maths.ox.ac.uk/trefethen/clencurt.m
 
-# Original code written by Professor Lloyd Trefethen, Oxford University
-# Adapted from code obtained at http://people.maths.ox.ac.uk/trefethen/clencurt.m
+"""
+    chebws(N::Int) -> Vector{Float64}
 
+Compute the `N`-point Clenshaw-Curtis quadrature weights for the
+Chebyshev–Gauss–Lobatto (CGL) grid returned by [`chebpts`](@ref).
+
+The weights `w` satisfy
+
+```math
+\\int_{-1}^{1} f(x)\\, dx \\approx \\sum_{j=1}^{N} w_j\\, f(x_j)
+```
+
+with spectral (exponential) convergence for smooth `f`.  For polynomial `f`
+of degree ≤ `N−1` the rule is exact.
+
+The boundary weights are `w₁ = wₙ = 1/(N²−1)` (even `N−1`) or `1/(N−1)²`
+(odd `N−1`); interior weights are computed by the DCT-based Trefethen algorithm.
+
+# Examples
+```julia
+julia> w = chebws(16);
+julia> y = chebpts(16);
+julia> abs(sum(w .* exp.(y)) - (exp(1) - exp(-1))) < 1e-12
+true
+```
+
+See also [`chebpts`](@ref).
+"""
 function chebws(N::Int)
     # obtain domain information
     N -= 1

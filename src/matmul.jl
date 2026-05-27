@@ -11,7 +11,44 @@
 # Union alias so the two methods below cover both operator types.
 const ChebOp{T} = Union{ChebDiff{T}, AdjointChebDiff{T}}
 
-# 1-D: delegate to the underlying dense Matrix stored in parent(D).
+"""
+    mul!(y, D::ChebOp, x) -> y
+    mul!(y, D::ChebOp, x, Val(DIM)) -> y
+
+In-place Chebyshev spectral differentiation (or adjoint differentiation) of `x`,
+storing the result in `y`.  `D` may be a [`ChebDiff`](@ref) (forward operator)
+or an [`AdjointChebDiff`](@ref) (adjoint / weighted-adjoint operator).
+
+**1-D form** (`x` and `y` are vectors): computes `y = D * x` via the
+underlying dense matrix multiply.
+
+**N-D form** (`x` and `y` are N-dimensional arrays, `DIM` is a `Val`):
+differentiates `x` along dimension `DIM`, applying `D` to each 1-D fibre
+`x[..., :, ...]`.  The loop nest is generated at compile time — no views,
+no closures, no runtime dispatch.
+
+# Examples
+```julia
+julia> N = 32; y = chebpts(N); D = chebdiff(N);
+julia> f  = exp.(y);                 # f(y) = eʸ
+julia> df = similar(f);
+julia> mul!(df, D, f)                # df ≈ eʸ = f
+julia> df ≈ f
+true
+
+julia> # 3-D field: differentiate along dimension 2
+julia> F  = randn(8, N, 8);
+julia> dF = similar(F);
+julia> mul!(dF, D, F, Val(2))
+
+julia> # Adjoint operator
+julia> Dt = adjoint(D);
+julia> w  = similar(f);
+julia> mul!(w, Dt, f)                # w = Dᵀ f
+```
+
+See also [`chebdiff`](@ref), [`AdjointChebDiff`](@ref).
+"""
 function LinearAlgebra.mul!(y::AbstractArray{S, 1},
                             D::ChebOp{T},
                             x::AbstractArray{S, 1}) where {S, T}
