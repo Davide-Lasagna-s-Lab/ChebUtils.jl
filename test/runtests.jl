@@ -286,3 +286,41 @@ end
     @test D_LU.L * D_LU.U ≈ Dbase[D_LU.p, :]
     @test DD_LU.L * DD_LU.U ≈ DDbase[DD_LU.p, :]
 end
+
+@testset "mul! allocations          " begin
+    # mul! on pre-allocated arrays must be allocation-free after the first call
+    # (the first call triggers JIT compilation; we measure the second).
+
+    N = 32
+
+    # ── 1-D ───────────────────────────────────────────────────────────────────
+    D  = chebdiff(N)
+    Dt = adjoint(D)
+    x1 = randn(N);  y1 = similar(x1)
+
+    mul!(y1, D,  x1); alloc_D1  = @allocated mul!(y1, D,  x1)
+    mul!(y1, Dt, x1); alloc_Dt1 = @allocated mul!(y1, Dt, x1)
+
+    @test alloc_D1  == 0
+    @test alloc_Dt1 == 0
+
+    # ── 3-D (cube) ────────────────────────────────────────────────────────────
+    Nz = 8; Nt = 8
+    x3 = randn(Nz, N, Nt);  y3 = similar(x3)
+
+    mul!(y3, D,  x3, Val(2)); alloc_D3  = @allocated mul!(y3, D,  x3, Val(2))
+    mul!(y3, Dt, x3, Val(2)); alloc_Dt3 = @allocated mul!(y3, Dt, x3, Val(2))
+
+    @test alloc_D3  == 0
+    @test alloc_Dt3 == 0
+
+    # ── 4-D (hypercube) ───────────────────────────────────────────────────────
+    Na = 4; Nb = 4; Nc = 4
+    x4 = randn(Na, Nb, Nc, N);  y4 = similar(x4)
+
+    mul!(y4, D,  x4, Val(4)); alloc_D4  = @allocated mul!(y4, D,  x4, Val(4))
+    mul!(y4, Dt, x4, Val(4)); alloc_Dt4 = @allocated mul!(y4, Dt, x4, Val(4))
+
+    @test alloc_D4  == 0
+    @test alloc_Dt4 == 0
+end
