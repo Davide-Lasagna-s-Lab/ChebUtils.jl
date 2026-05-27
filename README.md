@@ -1,5 +1,7 @@
 # ChebUtils.jl
 
+[![Docs](https://img.shields.io/badge/docs-dev-blue.svg)](https://davide-lasagna-s-lab.github.io/ChebUtils.jl/dev/)
+
 **ChebUtils** provides lightweight Chebyshev spectral utilities for Julia:
 Chebyshev–Gauss–Lobatto nodes, first- and second-order spectral differentiation
 matrices, Clenshaw-Curtis quadrature weights, and their adjoints —
